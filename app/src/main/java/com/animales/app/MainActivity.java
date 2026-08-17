@@ -8,159 +8,41 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
 public class MainActivity extends AppCompatActivity {
-    private LinearLayout content;
-    private SharedPreferences prefs;
-    private final int TEAL = Color.rgb(24, 116, 108);
-    private final int TEAL_DARK = Color.rgb(18, 83, 78);
-    private final int CORAL = Color.rgb(238, 126, 96);
-    private final int BG = Color.rgb(248, 250, 249);
-    private final int TEXT = Color.rgb(35, 42, 45);
-    private final int MUTED = Color.rgb(103, 114, 116);
+    private LinearLayout body;
+    private SharedPreferences data;
+    private final int GREEN=Color.rgb(21,105,98), DARK=Color.rgb(14,72,68), BG=Color.rgb(247,250,249), TEXT=Color.rgb(35,43,45), MUTED=Color.rgb(101,113,114), CORAL=Color.rgb(239,128,96);
+    private static final int PICK_PHOTO=42;
 
-    private final ActivityResultLauncher<Intent> photoPicker = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(), r -> {
-                if (r.getResultCode() == Activity.RESULT_OK && r.getData() != null && r.getData().getData() != null) {
-                    Uri uri = r.getData().getData();
-                    try { getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) {}
-                    prefs.edit().putString("photo", uri.toString()).apply();
-                    Toast.makeText(this, "Foto guardada", Toast.LENGTH_SHORT).show();
-                    showProfile();
-                }
-            });
+    @Override public void onCreate(Bundle b){ super.onCreate(b); data=getSharedPreferences("cachorrito",MODE_PRIVATE); showHome(); }
+    private int d(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
+    private GradientDrawable shape(int color,float r){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(d((int)r));return g;}
+    private GradientDrawable outline(int color,int line,int lineColor,float r){GradientDrawable g=shape(color,r);g.setStroke(d(line),lineColor);return g;}
+    private TextView txt(String s,float size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setTypeface(Typeface.DEFAULT,bold?Typeface.BOLD:Typeface.NORMAL);return t;}
+    private void add(View v,int top,int bottom){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,d(top),0,d(bottom));body.addView(v,p);}
+    private Button btn(String s,boolean filled){Button b=new Button(this);b.setText(s);b.setTextSize(15);b.setAllCaps(false);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setTextColor(filled?Color.WHITE:DARK);b.setBackground(filled?shape(GREEN,16):outline(Color.WHITE,1,Color.rgb(205,220,216),16));b.setMinHeight(d(52));b.setStateListAnimator(null);return b;}
+    private void page(String title,String sub){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);LinearLayout head=new LinearLayout(this);head.setOrientation(LinearLayout.VERTICAL);head.setPadding(d(20),d(20),d(20),d(18));head.setBackground(shape(DARK,0));head.addView(txt("🐾  "+title,24,Color.WHITE,true));if(sub!=null){TextView s=txt(sub,13,Color.rgb(216,237,233),false);s.setPadding(0,d(5),0,0);head.addView(s);}root.addView(head);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(d(20),d(18),d(20),d(30));ScrollView sv=new ScrollView(this);sv.addView(body);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);}
+    private View card(String title,String sub,String icon,View.OnClickListener c){LinearLayout box=new LinearLayout(this);box.setGravity(Gravity.CENTER_VERTICAL);box.setPadding(d(15),d(14),d(12),d(14));box.setBackground(outline(Color.WHITE,1,Color.rgb(226,234,231),18));TextView i=txt(icon,25,TEXT,false);i.setGravity(Gravity.CENTER);box.addView(i,new LinearLayout.LayoutParams(d(44),d(44)));LinearLayout words=new LinearLayout(this);words.setOrientation(LinearLayout.VERTICAL);words.setPadding(d(12),0,d(5),0);words.addView(txt(title,17,TEXT,true));TextView q=txt(sub,13,MUTED,false);q.setMaxLines(3);words.addView(q);box.addView(words,new LinearLayout.LayoutParams(0,-2,1));box.addView(txt("›",30,GREEN,false),new LinearLayout.LayoutParams(d(22),-2));box.setOnClickListener(c);return box;}
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        prefs = getSharedPreferences("cachorrito", MODE_PRIVATE);
-        getWindow().setStatusBarColor(TEAL_DARK);
-        showHome();
-    }
+    private void showHome(){String name=data.getString("name","");page("Cachorrito",name.isEmpty()?"Comprende sus señales. Cuídalo mejor.":"Perfil activo: "+name);LinearLayout hero=new LinearLayout(this);hero.setOrientation(LinearLayout.VERTICAL);hero.setPadding(d(18),d(20),d(18),d(20));hero.setBackground(shape(Color.rgb(255,246,240),20));hero.addView(txt(name.isEmpty()?"Tu compañero merece ser entendido.":"Hola, humano de "+name+".",23,TEXT,true));TextView h=txt(name.isEmpty()?"Crea su perfil y empieza a observar patrones.":"Registra lo que ves y descubre qué puede estar comunicando.",14,MUTED,false);h.setPadding(0,d(7),0,0);hero.addView(h);add(hero,0,14);add(card("¿Qué está comunicando?","Analiza una señal y descubre interpretaciones posibles.","🔎",v->showSignals()),0,10);add(card("Mi perro","Perfil, foto, raza, edad, peso y necesidades.","🐶",v->showProfile()),0,10);add(card("Historial","Guarda observaciones y vuelve a ellas.","📖",v->showHistory()),0,10);add(card("Biblioteca canina","Lenguaje corporal, contexto y señales de alerta.","📚",v->showGuide()),0,18);add(txt("La clave es el contexto",17,TEXT,true),0,5);add(txt("Postura + cara + cola + entorno + lo que ocurrió antes forman una imagen mucho más útil que una señal aislada.",14,MUTED,false),0,0);}
 
-    private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density + .5f); }
-    private GradientDrawable bg(int color, float radius) {
-        GradientDrawable g = new GradientDrawable(); g.setColor(color); g.setCornerRadius(dp((int)radius)); return g;
-    }
-    private GradientDrawable strokeBg(int color, int stroke, int strokeColor, float radius) {
-        GradientDrawable g = bg(color, radius); g.setStroke(dp(stroke), strokeColor); return g;
-    }
-    private TextView label(String s, float size, int color, boolean bold) {
-        TextView v = new TextView(this); v.setText(s); v.setTextSize(size); v.setTextColor(color);
-        v.setTypeface(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL); v.setIncludeFontPadding(true); return v;
-    }
-    private void add(View v, int top, int bottom) {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2); p.setMargins(0, dp(top), 0, dp(bottom)); content.addView(v,p);
-    }
-    private TextView card(String title, String body, String icon, View.OnClickListener click) {
-        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.HORIZONTAL); box.setGravity(Gravity.CENTER_VERTICAL);
-        box.setPadding(dp(16),dp(15),dp(16),dp(15)); box.setBackground(strokeBg(Color.WHITE,1,Color.rgb(229,234,232),18));
-        TextView ic=label(icon,25,TEXT,false); ic.setGravity(Gravity.CENTER); box.addView(ic,new LinearLayout.LayoutParams(dp(44),dp(44)));
-        LinearLayout words=new LinearLayout(this); words.setOrientation(LinearLayout.VERTICAL); words.setPadding(dp(12),0,0,0);
-        words.addView(label(title,17,TEXT,true)); TextView b=label(body,13,MUTED,false); b.setMaxLines(3); words.addView(b);
-        box.addView(words,new LinearLayout.LayoutParams(0,-2,1));
-        TextView arrow=label("›",30,TEAL,false); box.addView(arrow,new LinearLayout.LayoutParams(dp(25),-2));
-        box.setOnClickListener(click); return box;
-    }
-    private Button primary(String text) {
-        Button b=new Button(this); b.setText(text); b.setTextSize(15); b.setAllCaps(false); b.setTextColor(Color.WHITE); b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        b.setGravity(Gravity.CENTER); b.setPadding(dp(12),0,dp(12),0); b.setBackground(bg(TEAL,16));
-        b.setMinHeight(dp(52)); b.setStateListAnimator(null); return b;
-    }
-    private Button secondary(String text) {
-        Button b=primary(text); b.setTextColor(TEAL_DARK); b.setBackground(strokeBg(Color.WHITE,1,Color.rgb(202,218,214),16)); return b;
-    }
-    private void shell(String title, String subtitle) {
-        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(BG);
-        LinearLayout top=new LinearLayout(this); top.setOrientation(LinearLayout.VERTICAL); top.setPadding(dp(20),dp(20),dp(20),dp(18)); top.setBackground(bg(TEAL_DARK,0));
-        TextView t=label("🐾  "+title,24,Color.WHITE,true); top.addView(t);
-        if(subtitle!=null && !subtitle.isEmpty()) { TextView st=label(subtitle,13,Color.rgb(218,239,235),false); st.setPadding(0,dp(4),0,0); top.addView(st); }
-        root.addView(top);
-        content=new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(20),dp(18),dp(20),dp(30));
-        ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true); scroll.addView(content); root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        setContentView(root);
-    }
+    private void showProfile(){page("Mi perro","La información se guarda localmente en este teléfono.");ImageView photo=new ImageView(this);photo.setBackground(shape(Color.rgb(233,242,239),50));photo.setScaleType(ImageView.ScaleType.CENTER_CROP);String uri=data.getString("photo","");if(!uri.isEmpty())try{photo.setImageURI(Uri.parse(uri));}catch(Exception ignored){}else photo.setImageResource(android.R.drawable.ic_menu_camera);add(photo,0,12);Button choose=btn("Elegir foto",false);choose.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK_PHOTO);});add(choose,0,12);EditText name=field("Nombre",data.getString("name",""));EditText breed=field("Raza",data.getString("breed",""));EditText sex=field("Sexo",data.getString("sex",""));EditText age=field("Edad en años",data.getString("age",""));age.setInputType(2);EditText weight=field("Peso aproximado en kg",data.getString("weight",""));weight.setInputType(2|8192);EditText needs=field("Condiciones, alergias o necesidades especiales",data.getString("needs",""));needs.setMinLines(3);add(name,0,9);add(breed,0,9);add(sex,0,9);add(age,0,9);add(weight,0,9);add(needs,0,14);Button save=btn("Guardar perfil",true);save.setOnClickListener(v->{data.edit().putString("name",name.getText().toString().trim()).putString("breed",breed.getText().toString().trim()).putString("sex",sex.getText().toString().trim()).putString("age",age.getText().toString().trim()).putString("weight",weight.getText().toString().trim()).putString("needs",needs.getText().toString().trim()).apply();Toast.makeText(this,"Perfil guardado",Toast.LENGTH_SHORT).show();showHome();});add(save,0,9);Button back=btn("Volver",false);back.setOnClickListener(v->showHome());add(back,0,0);}
+    private EditText field(String hint,String value){EditText e=new EditText(this);e.setHint(hint);e.setText(value);e.setTextSize(15);e.setTextColor(TEXT);e.setHintTextColor(MUTED);e.setPadding(d(14),0,d(14),0);e.setMinHeight(d(52));e.setBackground(outline(Color.WHITE,1,Color.rgb(218,226,223),14));return e;}
+    @Override protected void onActivityResult(int request,int result,Intent intent){super.onActivityResult(request,result,intent);if(request==PICK_PHOTO&&result==Activity.RESULT_OK&&intent!=null&&intent.getData()!=null){Uri u=intent.getData();try{getContentResolver().takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}data.edit().putString("photo",u.toString()).apply();showProfile();}}
 
-    private void showHome() {
-        String name=prefs.getString("name",""); String breed=prefs.getString("breed","");
-        shell("Cachorrito", name.isEmpty()?"Comprende sus señales. Cuídalo mejor.":"Perfil activo: "+name);
-        LinearLayout hero=new LinearLayout(this); hero.setOrientation(LinearLayout.VERTICAL); hero.setPadding(dp(18),dp(20),dp(18),dp(20)); hero.setBackground(bg(Color.rgb(255,246,240),20));
-        hero.addView(label(name.isEmpty()?"Tu compañero merece ser entendido.":"Hola, humano de "+name+".",23,TEXT,true));
-        TextView h=label(name.isEmpty()?"Crea su perfil y empieza a observar patrones de conducta.":"Registra lo que ves y descubre qué puede estar comunicando.",14,MUTED,false); h.setPadding(0,dp(6),0,0); hero.addView(h);
-        add(hero,0,14);
-        add(card("¿Qué está comunicando?","Analiza una señal y descubre interpretaciones posibles.","🔎",v->showAnalyzer()),0,10);
-        add(card("Mi perro","Perfil, foto, raza, edad, peso y necesidades.","🐶",v->showProfile()),0,10);
-        add(card("Historial","Guarda observaciones para detectar patrones.","📖",v->showHistory()),0,10);
-        add(card("Biblioteca canina","Lenguaje corporal, contexto y señales de alerta.","📚",v->showGuide()),0,18);
-        TextView sec=label("Observa el conjunto, no una señal aislada",16,TEXT,true); add(sec,0,5);
-        add(label("La postura, la cara, la cola, el entorno y lo que ocurrió antes cuentan una historia. Cachorrito te ayuda a ordenar esas pistas.",14,MUTED,false),0,0);
-    }
+    private void showSignals(){page("Lectura de conducta","Elige la señal que más se parece a lo que observas.");add(txt("¿Qué estás viendo?",20,TEXT,true),0,8);String[][] a={{"Cola baja o entre las patas","Puede acompañar miedo, inseguridad o estrés","🐕"},{"Orejas hacia atrás","Puede indicar incomodidad, miedo o apaciguamiento","👂"},{"Jadeo sin ejercicio","Puede relacionarse con calor, excitación, estrés o malestar","💨"},{"Ladrido repetido","Puede ser alerta, excitación, frustración, miedo o atención","🔊"},{"Se esconde o evita contacto","Puede relacionarse con miedo, estrés, dolor o necesidad de espacio","🏠"},{"Cuerpo rígido","Señal importante de tensión; mira el contexto","⚠️"},{"Bosteza o lame el hocico","Puede aparecer en situaciones de tensión, pero no es específica","👅"},{"Cuerpo relajado","Suele ser compatible con comodidad; confirma con el contexto","💚"}};for(String[] x:a)add(card(x[0],x[1],x[2],v->showResult(x[0])),0,9);}
 
-    private void showProfile() {
-        shell("Mi perro","Tu ficha personal queda guardada en este teléfono.");
-        LinearLayout photoRow=new LinearLayout(this); photoRow.setGravity(Gravity.CENTER_VERTICAL); photoRow.setPadding(dp(16),dp(14),dp(16),dp(14)); photoRow.setBackground(bg(Color.WHITE,18));
-        ImageView image=new ImageView(this); image.setScaleType(ImageView.ScaleType.CENTER_CROP); image.setBackground(bg(Color.rgb(235,242,239),50));
-        String photo=prefs.getString("photo",""); if(!photo.isEmpty()) try{image.setImageURI(Uri.parse(photo));}catch(Exception ignored){}
-        else image.setImageResource(android.R.drawable.ic_menu_camera);
-        photoRow.addView(image,new LinearLayout.LayoutParams(dp(78),dp(78)));
-        LinearLayout pwords=new LinearLayout(this); pwords.setOrientation(LinearLayout.VERTICAL); pwords.setPadding(dp(14),0,0,0);
-        pwords.addView(label("Foto de tu compañero",16,TEXT,true)); pwords.addView(label("Puedes cambiarla cuando quieras.",13,MUTED,false));
-        Button pick=secondary("Elegir foto"); pick.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT); i.setType("image/*"); i.addCategory(Intent.CATEGORY_OPENABLE); i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION); photoPicker.launch(i);}); pwords.addView(pick,new LinearLayout.LayoutParams(-1,dp(46)));
-        photoRow.addView(pwords,new LinearLayout.LayoutParams(0,-2,1)); add(photoRow,0,16);
-        EditText name=field("Nombre",prefs.getString("name","")); EditText breed=field("Raza",prefs.getString("breed","")); EditText sex=field("Sexo",prefs.getString("sex",""));
-        EditText age=field("Edad (años)",prefs.getString("age","")); age.setInputType(2); EditText weight=field("Peso aproximado (kg)",prefs.getString("weight","")); weight.setInputType(2|8192);
-        EditText conditions=field("Condiciones, alergias o necesidades especiales",prefs.getString("conditions","")); conditions.setMinLines(3);
-        add(name,0,10); add(breed,0,10); add(sex,0,10); add(age,0,10); add(weight,0,10); add(conditions,0,16);
-        Button save=primary("Guardar perfil"); save.setOnClickListener(v->{prefs.edit().putString("name",name.getText().toString().trim()).putString("breed",breed.getText().toString().trim()).putString("sex",sex.getText().toString().trim()).putString("age",age.getText().toString().trim()).putString("weight",weight.getText().toString().trim()).putString("conditions",conditions.getText().toString().trim()).apply(); Toast.makeText(this,"Perfil actualizado",Toast.LENGTH_SHORT).show(); showHome();}); add(save,0,10);
-        Button back=secondary("Volver"); back.setOnClickListener(v->showHome()); add(back,0,0);
-    }
+    private void showResult(String signal){page("Lectura","Una señal es una pista, no un diagnóstico.");String meaning="",action="",warning="";if(signal.startsWith("Cola")){meaning="Una cola baja puede aparecer con miedo, inseguridad o estrés. Observa también postura, orejas, mirada y distancia.";action="Dale espacio, evita forzar la interacción y registra qué ocurrió justo antes.";warning="Si el cambio es repentino o hay dolor, conviene una evaluación veterinaria.";}else if(signal.startsWith("Orejas")){meaning="Las orejas hacia atrás pueden acompañar miedo o incomodidad. La forma de las orejas y la raza también importan.";action="Reduce la presión y observa el conjunto del cuerpo.";warning="No etiquetes al perro como agresivo o sumiso por una sola señal.";}else if(signal.startsWith("Jadeo")){meaning="El jadeo es normal después de ejercicio o con calor, pero sin una causa clara puede acompañar estrés o malestar.";action="Comprueba calor, actividad reciente, agua y contexto.";warning="Dificultad respiratoria, debilidad, colapso o jadeo intenso persistente requieren atención veterinaria.";}else if(signal.startsWith("Ladrido")){meaning="El ladrido tiene múltiples funciones. El momento, el estímulo y lo que ocurre después ayudan a interpretarlo.";action="Anota qué pasó antes, durante y después.";warning="Evita castigos físicos o gritos, que pueden aumentar la activación.";}else if(signal.startsWith("Se esconde")){meaning="Evitar contacto puede relacionarse con miedo, estrés, dolor o una experiencia negativa.";action="No lo obligues a salir; ofrece un lugar seguro y reduce la presión.";warning="Si es nuevo, intenso o viene con cambios físicos, consulta.";}else if(signal.startsWith("Cuerpo rígido")){meaning="La rigidez puede indicar tensión, miedo, conflicto o dolor y merece atención al contexto.";action="Aumenta la distancia y evita tocarlo o arrinconarlo.";warning="Si gruñe, muestra dientes o intenta morder, prioriza seguridad y distancia.";}else if(signal.startsWith("Bosteja")){meaning="Bostezar o lamerse el hocico puede aparecer con tensión, pero también tiene funciones normales.";action="Busca otras señales antes de sacar conclusiones.";warning="Si aparece junto a signos físicos anormales, consulta.";}else{meaning="Un cuerpo suelto y movimientos suaves suelen ser compatibles con comodidad.";action="Observa si es habitual para tu perro y qué ocurre alrededor.";warning="La conducta puede cambiar rápido; sigue observando el conjunto.");}
+        add(box("¿Qué puede significar?",meaning,"🧠"),0,10);add(box("¿Qué puedes hacer?",action,"✓"),0,10);add(box("Cuándo prestar más atención",warning,"⚠"),0,16);Button save=btn("Guardar observación",true);save.setOnClickListener(v->{saveHistory(signal,meaning);});add(save,0,9);Button again=btn("Elegir otra señal",false);again.setOnClickListener(v->showSignals());add(again,0,0);}
+    private LinearLayout box(String title,String text,String icon){LinearLayout b=new LinearLayout(this);b.setOrientation(LinearLayout.VERTICAL);b.setPadding(d(16),d(14),d(16),d(14));b.setBackground(outline(Color.WHITE,1,Color.rgb(224,231,228),18));LinearLayout h=new LinearLayout(this);h.setGravity(Gravity.CENTER_VERTICAL);h.addView(txt(icon,20,TEXT,false));TextView t=txt(title,16,TEXT,true);t.setPadding(d(10),0,0,0);h.addView(t);b.addView(h);TextView q=txt(text,14,MUTED,false);q.setPadding(0,d(7),0,0);b.addView(q);return b;}
 
-    private EditText field(String hint,String value){ EditText e=new EditText(this); e.setHint(hint); e.setText(value); e.setTextSize(15); e.setTextColor(TEXT); e.setHintTextColor(MUTED); e.setSingleLine(false); e.setPadding(dp(14),0,dp(14),0); e.setBackground(strokeBg(Color.WHITE,1,Color.rgb(218,226,223),14)); e.setMinHeight(dp(52)); return e; }
-
-    private void showAnalyzer() {
-        shell("Lectura de conducta","Selecciona la señal que más se parece a lo que estás viendo.");
-        add(label("¿Qué estás observando?",20,TEXT,true),0,5);
-        String[][] items={{"Cola baja o entre las patas","Miedo, inseguridad o estrés","🐕"},{"Orejas hacia atrás","Incomodidad, miedo o sumisión","👂"},{"Jadeo sin ejercicio","Calor, excitación, estrés o malestar","💨"},{"Ladrido repetido","Alerta, excitación, frustración o atención","🔊"},{"Se esconde o evita contacto","Miedo, estrés, dolor o necesidad de espacio","🏠"},{"Cuerpo rígido o inmóvil","Tensión o posible respuesta defensiva","⚠️"},{"Bosteza o lame el hocico","Posible tensión o conducta de apaciguamiento","👅"},{"Cuerpo relajado","Comodidad probable; confirma con el contexto","💚"}};
-        for(String[] it:items) add(card(it[0],it[1],it[2],v->showResult(it[0],it[1])),0,9);
-        TextView note=label("Consejo: anota qué ocurrió justo antes y después. El contexto cambia la interpretación.",13,MUTED,false); add(note,8,0);
-    }
-
-    private void showResult(String signal,String shortText) {
-        shell("Lectura","Una señal es una pista, no un diagnóstico.");
-        add(label(signal,24,TEXT,true),0,6); add(label(shortText,15,TEAL_DARK,false),0,16);
-        String detail=""; String action=""; String risk="";
-        if(signal.startsWith("Cola")){detail="Una cola baja puede aparecer con miedo, inseguridad o estrés. Mira también la postura, las orejas, la mirada y la distancia con el estímulo.";action="Dale espacio, evita forzar la interacción y observa qué desencadenó el cambio.";risk="Si el cambio es repentino o hay dolor, consulta a un veterinario.";}
-        else if(signal.startsWith("Orejas")){detail="Las orejas hacia atrás pueden acompañar miedo, incomodidad o una actitud de apaciguamiento. En algunas razas la forma de las orejas limita esta lectura.";action="Reduce la presión y observa el resto del cuerpo.";risk="No uses una sola señal para etiquetar al perro como agresivo o sumiso.";}
-        else if(signal.startsWith("Jadeo")){detail="El jadeo es normal después de ejercicio o con calor. Sin una causa evidente también puede acompañar excitación, estrés o malestar.";action="Comprueba temperatura, actividad reciente, agua disponible y contexto.";risk="Jadeo intenso persistente, dificultad respiratoria, debilidad o colapso requieren atención veterinaria.";}
-        else if(signal.startsWith("Ladrido")){detail="El ladrido puede cumplir funciones distintas: alerta, excitación, frustración, miedo o búsqueda de atención.";action="Registra qué ocurrió antes del ladrido y qué hizo el perro después.";risk="Evita castigos físicos o gritos; pueden aumentar la activación.";}
-        else if(signal.startsWith("Se esconde")){detail="Evitar personas o lugares puede relacionarse con miedo, estrés, dolor o una experiencia negativa.";action="No lo obligues a salir. Ofrece un lugar seguro y elimina presión.";risk="Si es nuevo, intenso o acompañado de cambios físicos, conviene una evaluación veterinaria.";}
-        else if(signal.startsWith("Cuerpo rígido")){detail="La rigidez es una señal importante de tensión. Puede aparecer ante miedo, conflicto, dolor o una situación que el perro percibe como amenaza.";action="Aumenta la distancia y evita tocarlo o arrinconarlo.";risk="Si gruñe, muestra dientes o intenta morder, prioriza seguridad y distancia.";}
-        else if(signal.startsWith("Bosteja")){detail="Bostezar o lamerse el hocico puede aparecer en contextos de tensión, pero también tiene funciones normales.";action="Busca otras señales y el contexto antes de sacar conclusiones.";risk="Si aparece junto a signos físicos anormales, consulta.";}
-        else {detail="Un cuerpo suelto, movimientos suaves y una expresión relajada suelen ser compatibles con comodidad.";action="Observa si esa conducta es habitual para tu perro y qué ocurre alrededor.";risk="Un perro puede pasar rápidamente de relajado a incómodo; sigue observando.";}
-        add(section("¿Qué puede significar?",detail,"🧠"),0,10); add(section("¿Qué puedes hacer ahora?",action,"✓"),0,10); add(section("Cuándo prestar más atención",risk,"⚠"),0,16);
-        LinearLayout buttons=new LinearLayout(this); buttons.setOrientation(LinearLayout.HORIZONTAL);
-        Button save=primary("Guardar observación"); Button again=secondary("Otra señal");
-        save.setOnClickListener(v->saveObservation(signal,detail)); again.setOnClickListener(v->showAnalyzer());
-        buttons.addView(save,new LinearLayout.LayoutParams(0,dp(52),1)); LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(0,dp(52),1); ap.setMargins(dp(8),0,0,0); buttons.addView(again,ap); add(buttons,0,0);
-    }
-
-    private LinearLayout section(String title,String body,String icon){ LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(16),dp(14),dp(16),dp(14)); box.setBackground(strokeBg(Color.WHITE,1,Color.rgb(224,231,228),18)); LinearLayout head=new LinearLayout(this); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(label(icon,20,TEXT,false)); TextView t=label(title,16,TEXT,true); t.setPadding(dp(10),0,0,0); head.addView(t); box.addView(head); TextView b=label(body,14,MUTED,false); b.setPadding(0,dp(7),0,0); box.addView(b); return box; }
-
-    private void saveObservation(String signal,String detail){ String now=new SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(new Date()); String old=prefs.getString("history",""); String item=now+"\n"+signal+"\n"+detail; String all=item+(old.isEmpty()?"":"\n\n"+old); String[] parts=all.split("\\n\\n"); StringBuilder limited=new StringBuilder(); int count=0; for(String p:parts){if(p.trim().isEmpty())continue; if(count++>=30)break; if(limited.length()>0)limited.append("\n\n"); limited.append(p);} prefs.edit().putString("history",limited.toString()).apply(); Toast.makeText(this,"Observación guardada",Toast.LENGTH_SHORT).show(); showHistory(); }
-
-    private void showHistory(){ shell("Historial","Tus observaciones quedan almacenadas localmente."); String h=prefs.getString("history",""); if(h.isEmpty()){ add(label("Aún no hay observaciones",21,TEXT,true),0,6); add(label("Cuando analices una conducta, guárdala aquí para comparar cambios con el tiempo.",14,MUTED,false),0,18); } else { String[] arr=h.split("\\n\\n"); for(String s:arr){ LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(15),dp(13),dp(15),dp(13)); box.setBackground(bg(Color.WHITE,16)); String[] lines=s.split("\\n",3); if(lines.length>0)addTo(box,label(lines[0],12,MUTED,false)); if(lines.length>1)addTo(box,label(lines[1],16,TEXT,true)); if(lines.length>2)addTo(box,label(lines[2],13,MUTED,false)); add(box,0,9); } } Button clear=secondary("Borrar historial"); clear.setOnClickListener(v->{prefs.edit().remove("history").apply(); showHistory();}); add(clear,8,0); }
-    private void addTo(LinearLayout box,View v){ LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2); p.setMargins(0,0,0,dp(4)); box.addView(v,p); }
-
-    private void showGuide(){ shell("Biblioteca","Una guía breve para interpretar mejor a tu perro."); add(label("La regla de oro",21,TEXT,true),0,5); add(label("Nunca interpretes una señal corporal de forma aislada. Combina postura, cara, movimiento, contexto y conducta habitual.",14,MUTED,false),0,16); add(section("Cola","Mira altura, tensión y movimiento. Una cola moviéndose no significa automáticamente felicidad.","🐕"),0,9); add(section("Orejas y ojos","Observa orientación, tensión, mirada y parpadeo junto al resto del cuerpo.","👀"),0,9); add(section("Boca","Jadeo, lamido del hocico, bostezos y tensión de la boca pueden aportar información contextual.","👄"),0,9); add(section("Cuerpo","Un cuerpo encogido puede sugerir inseguridad; uno rígido puede indicar tensión. Siempre considera la raza y la situación.","🧍"),0,9); add(section("Contexto","Ruido, personas, otros animales, comida, calor, dolor y cambios recientes pueden modificar la conducta.","🌿"),0,16); add(label("Señales de alerta",19,TEXT,true),0,5); add(label("Dificultad respiratoria, colapso, convulsiones, sangrado, intoxicación, dolor intenso o vómitos persistentes no deben manejarse solo con esta aplicación.",14,Color.rgb(155,72,57),false),0,0); }
+    private void saveHistory(String signal,String detail){String old=data.getString("history","");String item=signal+"\n"+detail;String all=item+(old.isEmpty()?"":"\n\n"+old);String[] p=all.split("\\n\\n");StringBuilder out=new StringBuilder();for(int i=0;i<p.length&&i<30;i++){if(i>0)out.append("\n\n");out.append(p[i]);}data.edit().putString("history",out.toString()).apply();Toast.makeText(this,"Observación guardada",Toast.LENGTH_SHORT).show();showHistory();}
+    private void showHistory(){page("Historial","Observaciones almacenadas localmente.");String h=data.getString("history","");if(h.isEmpty()){add(txt("Todavía no hay observaciones",21,TEXT,true),0,6);add(txt("Analiza una señal y guárdala para empezar a detectar patrones.",14,MUTED,false),0,18);}else{for(String item:h.split("\\n\\n")){String[] l=item.split("\\n",2);LinearLayout b=new LinearLayout(this);b.setOrientation(LinearLayout.VERTICAL);b.setPadding(d(15),d(13),d(15),d(13));b.setBackground(shape(Color.WHITE,16));addTo(b,txt(l[0],16,TEXT,true));if(l.length>1)addTo(b,txt(l[1],13,MUTED,false));add(b,0,9);}}Button clear=btn("Borrar historial",false);clear.setOnClickListener(v->{data.edit().remove("history").apply();showHistory();});add(clear,8,9);Button back=btn("Volver",false);back.setOnClickListener(v->showHome());add(back,0,0);}
+    private void addTo(LinearLayout b,View v){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,0,0,d(5));b.addView(v,p);}
+    private void showGuide(){page("Biblioteca canina","Conceptos rápidos para observar mejor.");add(box("Cola","Mira altura, tensión y movimiento. Una cola moviéndose no significa automáticamente felicidad.","🐕"),0,9);add(box("Orejas y ojos","Observa orientación, tensión, mirada y parpadeo junto con el resto del cuerpo.","👀"),0,9);add(box("Boca","Jadeo, lamido del hocico, bostezos y tensión pueden aportar información contextual.","👄"),0,9);add(box("Cuerpo","Un cuerpo encogido puede sugerir inseguridad; uno rígido puede indicar tensión.","🧍"),0,9);add(box("Contexto","Ruido, personas, otros animales, comida, calor, dolor y cambios recientes pueden modificar la conducta.","🌿"),0,16);add(txt("Importante",19,TEXT,true),0,5);add(txt("Dificultad respiratoria, colapso, convulsiones, sangrado, intoxicación, dolor intenso u otros signos graves no deben manejarse solo con esta aplicación.",14,Color.rgb(150,70,56),false),0,0);}
 }
